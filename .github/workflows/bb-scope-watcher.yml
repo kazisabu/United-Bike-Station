@@ -1,0 +1,33 @@
+name: BB Scope Watcher
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run scope watcher
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python bb-scope-watcher/watch.py
+
+      - name: Commit updated snapshot
+        run: |
+          git config user.name "bb-scope-watcher-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add bb-scope-watcher/data/snapshot.json
+          git diff --quiet --cached || git commit -m "Update scope snapshot"
+          git push
